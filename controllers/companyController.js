@@ -1,5 +1,7 @@
 const Company = require('../models/companyModel');
 const bcrypt = require('bcrypt');
+const Application = require('../models/applicantsModel');
+const Job = require('../models/jobPostModel');
 const { generateToken } = require('../middlewares/auth');
 const { uploadToCloudinary } = require('../config/cloudinary');
 let message, errMsg
@@ -94,24 +96,55 @@ module.exports = {
     },
     updateProfile: async (req, res) => {
         try {
-            const { profile } = req.body;
+            const { profile, bio } = req.body;
 
             const { companyId } = req.payload;
             const company = await Company.findById(companyId);
+
+            if (!company) {
+                return res.status(404).json({ errMsg: 'company not found' });
+            }
+
             const uploadResponse = await uploadToCloudinary(profile, { upload_preset: 'companyProfile' });
 
             if (uploadResponse) {
-                const newProfile = uploadResponse.url;
-                company.profile = newProfile;
-                console.log("profile:", company.profile)
-                const updatedProfile = await company.save();
-                return res.json({ updatedProfile });
+                company.profile = uploadResponse.url;
             }
+            if (bio) {
+                company.bio = bio
+            }
+            const updatedCompany = await company.save();
+
+            return res.status(200).json({ updatedCompany })
 
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: "Something went wrong at Company update Profile" })
         }
-    }
+    },
+    fetchCandidates: async (req, res) => {
+        try {
+            const { companyId } = req.payload;
+            
+            const myPosts = await Job.find({ companyId });
+            
+            
+            const candidates = await Application.find({ jobId: { $in: myPosts.map(post => post._id) } })
+              .populate({
+                path: 'applicant',
+                select: 'firstName lastName profile',
+              })
+              .populate({
+                path: 'jobId',
+                select: 'jobTitle workType',
+              });
+              
+            return res.status(200).json({ candidates });
+
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ errMsg: "Something went wrong at fetching candidates" })
+        }
+    },
 }
 

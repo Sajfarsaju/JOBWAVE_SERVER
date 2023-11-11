@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const bcrypt = require("bcrypt");
 const { generateToken } = require('../middlewares/auth');
+const { uploadToCloudinary } = require('../config/cloudinary');
 const Token = require('../models/tokenModel');
 const { sendEmail } = require('../utils/sendEmail');
 const crypto = require('crypto');
@@ -14,10 +15,12 @@ module.exports = {
     try {
       const { firstName, lastName, email, phone, password } = req.body
 
-      let existingUser = await User.findOne({ email })
+      const existingEmail = await User.findOne({ email })
+      const existingPhone = await User.findOne({ phone })
 
-      if (existingUser.email) return res.status(401).json({ errMsg: "User already exists with this Email!" });
-      if (existingUser.phone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
+      if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
+      if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
+      if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
 
       if (firstName.trim().length === 0 || lastName.trim().length === 0 || email.trim().length === 0 || phone.trim().length === 0 || password.trim().length === 0) return res.status(401).json({ errMsg: "Please fill all the fields" })
 
@@ -33,19 +36,7 @@ module.exports = {
           password: hashedPass
         }
       )
-
-      existingUser = await newUser.save();
-      console.log(existingUser)
-      // const token = await new Token({
-      //   userId : existingUser._id,
-      //   token : crypto.randomBytes(32).toString("hex")
-      // }).save();
-
-      // const url = `${process.env.BASE_URL}${existingUser._id}/verify/${token.token}`;
-
-      // await sendEmail(existingUser.email , 'Verify Email' , url)
-
-      // res.status(200).json({ message: "An Email sent to your account. Please verify" });
+      await newUser.save();
       res.status(200).json({ message: "Your registration has been successfully" });
 
     } catch (error) {
@@ -61,9 +52,8 @@ module.exports = {
       console.log('lastName;', lastName);
       console.log('email;', email);
       console.log('isEmailVerified;', isEmailVerified);
-      console.log('profile;', profile);
 
-      
+
 
       let existingUser = await User.findOne({ email: email });
 
@@ -90,37 +80,12 @@ module.exports = {
       res.status(500).json({ errMsg: "Something went wrong at Registration" });
     }
   },
-  // verifyTokenEmail: async (req, res) => {
-  //   try {
-  //     const user = await User.findOne({ _id: req.params.id });
-  //     if (!user) return res.status(400).json({ errMsg: "Invalid link" });
-
-  //     const token = await Token.findOne({
-  //       userId: user._id,
-  //       token: req.params.token
-  //     });
-
-  //     if (!token) return res.status(400).json({ errMsg: "Invalid link" });
-
-  //     await User.updateOne({ _id: user._id, isEmailVerified: true });
-
-  //     res.status(200).json({ message: "Email verified successfully" })
-
-  //   } catch (error) {
-
-  //     console.log(error);
-  //     res.status(500).json({ errMsg: "Something went wrong at Email verification" });
-
-  //   }
-  // },
   login: async (req, res) => {
 
     try {
       const { email, password } = req.body;
 
       const user = await User.findOne({ email: email })
-      // req.user = user;
-      // console.log('log',req.user.isActive)
 
       if (!user) return res.status(401).json({ errMsg: "User not found!" });
 
@@ -129,24 +94,8 @@ module.exports = {
       const passMatch = await bcrypt.compare(password, user.password)
 
       if (!passMatch) return res.status(401).json({ errMsg: "Your Password is incorrect!" });
-      
+
       if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked" });
-
-      // if(!user.isEmailVerified){
-
-      //   let token = await Token.findOne({ userId : user._id });
-      //   if(!token){
-      //     token = await new Token({
-      //       userId : user._id,
-      //       token : crypto.randomBytes(32).toString("hex")
-      //     }).save();
-
-      //     const url = `${process.env.BASE_URL}${user._id}/verify/${token.token}`;
-
-      //     await sendEmail(user.email , 'Verify Email' , url)
-      //   }
-      //   res.status(400).json({ errMsg : "An Email sent to your account please verify"});
-      // }
 
       const token = generateToken(user._id, 'user');
 
@@ -157,11 +106,11 @@ module.exports = {
       res.status(500).json({ errMsg: "Something went wrong at Login" });
     }
   },
-  googleLogin : async(req,res) => {
-    try{
+  googleLogin: async (req, res) => {
+    try {
 
       const { email } = req.body;
-      
+
       const user = await User.findOne({ email: email });
 
       if (!user) return res.status(401).json({ errMsg: "User not found!" });
@@ -172,7 +121,7 @@ module.exports = {
 
       res.status(200).json({ message: "Welcome to JobWave", isActive: user.isActive, name: user.firstName, token, role: 'user', id: user._id });
 
-    }catch(error){
+    } catch (error) {
       console.log(error);
       res.status(500).json({ errMsg: "Something went wrong at Login" });
     }
@@ -180,7 +129,6 @@ module.exports = {
   loginWithPhone: async (req, res) => {
     try {
       const { Number } = req.body;
-      console.log(Number)
 
       const user = await User.findOne({ phone: Number });
       req.user = user;
@@ -188,7 +136,7 @@ module.exports = {
       if (!user) return res.status(401).json({ errMsg: "You are not registered with this number. Please proceed to the registration page." });
 
       if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked" });
-      
+
       const token = generateToken(user._id, 'user');
 
       res.status(200).json({ message: "Welcome to JobWave", isActive: user.isActive, name: user.firstName, token, role: 'user', id: user._id });
@@ -201,13 +149,13 @@ module.exports = {
   forgetPassUser: async (req, res) => {
     try {
       const { password, Number, action } = req.body;
-      console.log(req.body)
+
       if (action === 'verifyPhone') {
 
         const user = await User.findOne({ phone: Number });
 
-        if (!user) return res.status(401).json({ errMsg: "User not found!" });
-        console.log(user.isActive)
+        if (!user) return res.status(404).json({ errMsg: "User not found!" });
+
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account is blocked" });
 
         return res.status(200).json({ message: "Phone number is ok" });
@@ -221,7 +169,6 @@ module.exports = {
         const hashedPass = await bcrypt.hash(password, salt);
 
         user.password = hashedPass;
-        console.log(user.password)
 
         await user.save();
         return res.status(200).json({ message: "You can now log in with your new password." });
@@ -237,7 +184,8 @@ module.exports = {
     try {
       const { id } = req.payload;
       const user = await User.findById(id)
-      res.json({ user }).status(200)
+      
+      return res.json({ user, skills: user.skills }).status(200)
     } catch (error) {
       console.log(error);
       res.status(500).json({ errMsg: "Somthing went wrong at get profile" })
@@ -277,6 +225,72 @@ module.exports = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'An error occurred while updating the user profile' });
+    }
+  },
+  // 
+  changeProfile: async (req, res) => {
+    try {
+      const { profileImage, bio } = req.body;
+
+      const userId = req.params.userId;
+
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ errMsg: 'User not found' });
+      }
+      const uploadResponse = await uploadToCloudinary(profileImage, { upload_preset: 'userProfile' });
+
+      if (uploadResponse) {
+        user.profile = uploadResponse.url;
+      }
+      if (bio) {
+        user.bio = bio;
+      }
+
+      await user.save();
+
+      return res.status(200)
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ errMsg: 'An error occurred' });
+    }
+  },
+  // 
+  changeSkill: async (req, res) => {
+    try {
+      const { skill, action } = req.body;
+      const userId = req.payload.id;
+
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ errMsg: 'User not found' });
+      }
+      if (action === 'add_skill') {
+        const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
+        // const existingSkill = await Skill.findOne({ name: capitalizedSkill });
+
+        if (user.skills.some(existingSkill => existingSkill.toLowerCase() === capitalizedSkill.toLowerCase())) {
+          console.log('Skill already exists:', capitalizedSkill);
+          return res.status(401).json({errMsg : "Skill already exists in your profile"})
+        } else {
+
+          user.skills.addToSet(capitalizedSkill);
+          console.log('Added:', capitalizedSkill);
+        }
+
+      } else if (action === 'remove') {
+        user.skills.pull(skill);
+        console.log('removed;', skill)
+      }
+
+      await user.save();
+
+      return res.status(200).json({ user })
+    } catch (error) {
+      console.error('An error occurred:', error);
+      return res.status(500).json({ errMsg: 'An error occurred' });
     }
   },
   addExperience: async (req, res) => {

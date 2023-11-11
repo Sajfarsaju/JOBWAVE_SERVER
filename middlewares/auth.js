@@ -40,8 +40,8 @@ module.exports = {
             
             const verified = jwt.verify(token, process.env.JWT_SECRET);
             
-            req.payload = verified;
-
+            req.payload = { token, ...verified };
+            
             if (req.payload.role === 'user') {
                 next();
             } else {
@@ -69,7 +69,7 @@ module.exports = {
             const verified = jwt.verify(token, process.env.JWT_SECRET);
             // req.payload = verified;
             req.payload = { token, companyId, ...verified };
-
+            
             if (req.payload.role === 'company') {
                 next();
             } else {

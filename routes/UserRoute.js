@@ -1,9 +1,10 @@
 const express = require('express');
-const { registration , googleSignup , login , googleLogin , getProfile, addSkill, updateProfile, addBio, loginWithPhone, forgetPassUser } = require('../controllers/userController');
+const { registration , googleSignup , login , googleLogin , getProfile,changeProfile,changeSkill, addSkill, updateProfile, addBio, loginWithPhone, forgetPassUser } = require('../controllers/userController');
 const { listJobs, getSingleJob, applyJob , appliedJobs} = require('../controllers/userJobController');
 const { verifyTokenUser } = require('../middlewares/auth');
-// const {isBlocked} = require('../middlewares/isBlocked');
 const upload = require('../middlewares/multer');
+const { setUpUserPayement, userPaymentStatus } = require('../controllers/paymentController');
+const { createChat , saveChat, fetchChats ,fetchAllMessages} = require('../controllers/chatController');
 const userRouter = express.Router();
 
 
@@ -23,5 +24,13 @@ userRouter.get('/jobs', verifyTokenUser , listJobs);
 userRouter.get('/jobview/:jobId', verifyTokenUser , getSingleJob);
 userRouter.post('/applyJob', verifyTokenUser, upload.single('CvFile'), applyJob);
 userRouter.get('/applied_jobs', verifyTokenUser , appliedJobs);
+userRouter.post('/user_plan', verifyTokenUser, setUpUserPayement);
+userRouter.get('/payment_successfully', userPaymentStatus);
+userRouter.get('/payment_failed', userPaymentStatus);
+userRouter.post('/chats', verifyTokenUser , createChat);
+userRouter.get('/chats', verifyTokenUser , fetchChats)
+userRouter.get('/openChat', verifyTokenUser , fetchAllMessages)
+userRouter.patch('/profilee/:userId', verifyTokenUser , changeProfile);
+userRouter.patch('/skills', verifyTokenUser , changeSkill);
 
 module.exports = userRouter;
