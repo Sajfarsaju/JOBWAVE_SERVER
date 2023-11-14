@@ -119,25 +119,7 @@ module.exports = {
                 await newJob.save();
                 res.status(200).json({ newJob });
             }
-            // const newJob = new Job({
-            //     jobTitle,
-            //     jobCategory: selectedCategory.categoryName,
-            //     // jobCategory:jobCategory.categoryName,
-            //     workType,
-            //     workplace,
-            //     salaryRange,
-            //     deadline,
-            //     logo,
-            //     qualifications,
-            //     jobDescription,
-            //     companyDescription,
-            //     jobResponsibilities,
-            //     benefits,
-            //     vacancy,
-            //     companyId
-            // });
-            // await newJob.save();
-            // res.status(200).json({ newJob });
+           
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: 'An error occurred while saving job details at controller' });

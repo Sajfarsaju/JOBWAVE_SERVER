@@ -50,7 +50,7 @@ module.exports = {
                 });
 
                 await newApplication.save();
-                console.log(newApplication, ":::::saved to database");
+                
                 res.status(200).json({ newApplication });
             }
 
