@@ -13,6 +13,17 @@ const adminRouter = require('./routes/adminRoute');
 const { saveChat } = require('./controllers/chatController');
 const connectDB = require('./config/dbConfig');
 
+
+// Enable CORS with specific options
+const corsOptions = {
+	origin: [
+	  "*", // Add your Vercel app origin here
+	],
+	methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
+	allowedHeaders: ["Content-Type", "Authorization"],
+	optionsSuccessStatus: 204,
+  };
+  
 app.use(express.json({limit:'100mb',extended:true}))
 app.use(cors());
 app.use(cookieParser());
@@ -27,7 +38,7 @@ const server = app.listen( port , ()=> console.log(`Server Connected at ${port}`
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: '*',
   },
 });
 io.on("connection", (socket) => {
