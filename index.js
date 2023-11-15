@@ -39,6 +39,7 @@ const server = app.listen( port , ()=> console.log(`Server Connected at ${port}`
 const io = new Server(server, {
   cors: {
     origin: '*',
+    credentials:true,
   },
 });
 io.on("connection", (socket) => {
