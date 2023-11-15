@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 module.exports = function mongooseConnectoin() {
-    mongoose.set('strictQuery',true);
+    // mongoose.set('strictQuery',true);
     mongoose.connect(process.env.MONGOOSE_CONNECTION , {
         useNewUrlParser : true,
         useUnifiedTopology : true,
