@@ -4,6 +4,9 @@ const Application = require('../models/applicantsModel');
 const Job = require('../models/jobPostModel');
 const { generateToken } = require('../middlewares/auth');
 const { uploadToCloudinary } = require('../config/cloudinary');
+const sendVerifyMail = require('../config/verifyEmail');
+const User = require('../models/userModel');
+const hiringModel = require('../models/hiringModel');
 let message, errMsg
 
 
@@ -125,20 +128,20 @@ module.exports = {
     fetchCandidates: async (req, res) => {
         try {
             const { companyId } = req.payload;
-            
+
             const myPosts = await Job.find({ companyId });
-            
-            
+
+
             const candidates = await Application.find({ jobId: { $in: myPosts.map(post => post._id) } })
-              .populate({
-                path: 'applicant',
-                select: 'firstName lastName profile',
-              })
-              .populate({
-                path: 'jobId',
-                select: 'jobTitle workType',
-              });
-              
+                .populate({
+                    path: 'applicant',
+                    select: 'firstName lastName email profile',
+                })
+                .populate({
+                    path: 'jobId',
+                    select: 'jobTitle workType',
+                });
+            console.log("candidates;", candidates)
             return res.status(200).json({ candidates });
 
         } catch (error) {
@@ -146,5 +149,72 @@ module.exports = {
             res.status(500).json({ errMsg: "Something went wrong at fetching candidates" })
         }
     },
+    shortListCandidate: async (req, res) => {
+
+        try {
+            const { selectedOption, interviewTime, userId, companyId, applicationId, jobId } = req.body;
+
+            if (selectedOption === 'shortlisted') {
+
+                const application = await Application.findById(applicationId)
+
+                application.status = selectedOption
+
+                const saved = await application.save()
+
+
+                const newHiringProcess = new hiringModel({
+                    companyId: companyId,
+                    applicationId: applicationId,
+                    jobId: jobId,
+                    candidate: userId,
+                    interViewTime: interviewTime,
+                    status: selectedOption,
+                });
+
+
+                await newHiringProcess.save();
+
+                return res.status(200)
+                // const company = await Company.findById(companyId)
+                // const user = await User.findById(userId)
+                // const {companyName , email } = company
+                // sendVerifyMail(companyName , email , interviewTime , user.email , user.firstName , user.lastName)
+
+            }
+
+
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ errMsg: "Something went wrong at shortlist candidate" })
+        }
+    },
+    fetchShortlistDetails: async (req, res) => {
+
+        try {
+            const { companyId } = req.query
+
+            const myPosts = await Job.find({ companyId });
+
+
+            // const candidates = await hiringModel.find({ jobId: { $in: myPosts.map(post => post._id) } })
+            //   .populate({
+            //     path: 'applicant',
+            //     select: 'firstName lastName email profile',
+            //   })
+            //   .populate({
+            //     path: 'jobId',
+            //     select: 'jobTitle',
+            //   });
+            //   console.log("candidates;",candidates)
+            const shortlistedDetail = await hiringModel.find({ companyId: companyId })
+                .populate('candidate')
+                .populate('jobId')
+            console.log('shortlistedDetail;', shortlistedDetail)
+            return res.status(200).json({shortlistedDetail})
+        } catch (error) {
+            console.log(error)
+        }
+    }
 }
 

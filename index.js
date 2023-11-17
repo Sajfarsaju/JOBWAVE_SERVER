@@ -47,12 +47,12 @@ io.on("connection", (socket) => {
 
   socket.on("join_room",(chat_id)=>{
     socket.join(chat_id.room);
-    console.log(chat_id,"connected room ");
+    // console.log(chat_id,"connected room ");
   })
 
   socket.on(`send_message`,(newMessage)=>{
-    const {content , createdAt} = newMessage
-    console.log('message reached:',content);
+    // const {content , createdAt} = newMessage
+    // console.log('message reached:',content);
     
     socket.to(newMessage.chatId).emit("message_response",newMessage);
     
