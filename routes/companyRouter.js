@@ -1,12 +1,13 @@
 const express = require('express');
 const upload = require('../middlewares/multer');
-const { registration, login, getCompany, updateProfile , fetchCandidates , shortListCandidate , fetchShortlistDetails} = require('../controllers/companyController');
+const { registration, login, getCompany, updateProfile ,
+         fetchCandidates , shortListCandidate , fetchShortlistDetails ,
+         hireCandidate , fetchHiredCandidate} = require('../controllers/companyController');
 const { addPost, listCompanyJobs } = require('../controllers/jobController');
 const { categoryList } = require('../controllers/categoryController');
 const { verifyTokenCompany } = require('../middlewares/auth');
 const { setUpPayement, paymentStatus } = require('../controllers/paymentController');
 const { fetchChats , fetchAllMessages} = require('../controllers/chatController');
-
 
 const companyRouter = express.Router();
 
@@ -24,8 +25,10 @@ companyRouter.patch('/profile', verifyTokenCompany, updateProfile);
 companyRouter.get('/chats', verifyTokenCompany , fetchChats);
 companyRouter.get('/openChat', verifyTokenCompany , fetchAllMessages);
 companyRouter.get('/candidates', verifyTokenCompany , fetchCandidates);
-companyRouter.post('/shortlist'  , shortListCandidate);
-companyRouter.get('/shortlist'  , fetchShortlistDetails);
+companyRouter.post('/shortlist' , verifyTokenCompany , shortListCandidate);
+companyRouter.get('/shortlist' , verifyTokenCompany , fetchShortlistDetails);
+companyRouter.post('/hired' , verifyTokenCompany , hireCandidate);
+companyRouter.get('/hired' , verifyTokenCompany , fetchHiredCandidate);
 
 
 module.exports = companyRouter;

@@ -17,7 +17,7 @@ const connectDB = require('./config/dbConfig');
 // Enable CORS with specific options
 const corsOptions = {
 	origin: [
-	  "*", // Add your Vercel app origin here
+	  "*",
 	],
 	methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
 	allowedHeaders: ["Content-Type", "Authorization"],

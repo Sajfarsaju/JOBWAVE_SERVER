@@ -11,7 +11,8 @@ cloudinary.config({
 const uploadToCloudinary = async (file, options) => {
     try {
         const uploadResponse = await cloudinary.uploader.upload(file, options);
-        return uploadResponse;
+        const secureUrl = uploadResponse.secure_url;
+        return secureUrl;
     } catch (error) {
         console.log(error, "An error occurred while saving to cloudinary");
     }

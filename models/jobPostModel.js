@@ -83,41 +83,6 @@ const postJobSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // applicants: [
-  //   {
-  //     applicant: {
-  //       type: mongoose.Schema.Types.ObjectId,
-  //       ref: "users",
-  //       required: true,
-  //     },
-  //     status: {
-  //       type: String,
-  //       required: true,
-  //       default: "pending",
-  //     },
-  //     coverLetter: {
-  //       type: String,
-  //       required: true,
-  //     },
-  //     resumeUrl: {
-  //       type: String,
-  //       required: true,
-  //     },
-  //     resumePublicId: {
-  //       type: String,
-  //       required: true,
-  //     },
-  //   },
-  // ],
-  // invites: [
-  //   {
-  //     userId: {
-  //       type: mongoose.Schema.Types.ObjectId,
-  //       ref: "users",
-  //       required: true,
-  //     },
-  //   },
-  // ],
 
 },
   { timestamps: true }

@@ -65,6 +65,9 @@ const companySchema = new mongoose.Schema(
                 type: Date,
             },
         },
+        bio: {
+            type: String
+        },
         isBlocked: {
             type: Boolean,
             default: false

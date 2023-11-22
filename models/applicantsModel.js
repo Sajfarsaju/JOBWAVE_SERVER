@@ -29,15 +29,6 @@ const jobApplicantsSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        invites: [
-            {
-                userId: {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: "users",
-                    required: true,
-                },
-            },
-        ],
     },
 
     { timestamps: true }

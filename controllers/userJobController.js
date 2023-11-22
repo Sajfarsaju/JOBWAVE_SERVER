@@ -6,9 +6,29 @@ module.exports = {
 
     listJobs: async (req, res) => {
         try {
+            const { userId } = req.query
             const Jobs = await Job.find({ isPostAccepted: true }).populate('companyId');
 
-            res.status(200).json({ Jobs });
+            const userApplications = await Application.find({ applicant: userId, jobId: { $in: Jobs.map(job => job._id) } });
+
+            const jobApplicationsMap = {};
+            userApplications.forEach(application => {
+                jobApplicationsMap[application.jobId.toString()] = application;
+            });
+
+            const jobsWithApplications = Jobs.map(job => {
+                const jobInfo = job.toObject();
+                const application = jobApplicationsMap[job._id.toString()];
+
+                if (application) {
+                    jobInfo.appliedStatus = true;
+                } else {
+                    jobInfo.appliedStatus = false;
+                }
+                return jobInfo;
+            });
+
+            res.status(200).json({ Jobs: jobsWithApplications });
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: "An error occurred while listing job details at controller" });
@@ -36,10 +56,9 @@ module.exports = {
             });
             if (existingApplication) return res.status(400).json({ errMsg: 'Already applied for this job.' });
 
-            const uploadResponse = await uploadToCloudinary(CvFile, { upload_preset: 'CvFiles' });
-            if (uploadResponse) {
-                const cvUrl = uploadResponse.url;
-                const cvPublicId = uploadResponse.public_id;
+            const uploadedUrl = await uploadToCloudinary(CvFile, { upload_preset: 'CvFiles' });
+            if (uploadedUrl) {
+                const cvUrl = uploadedUrl;
 
                 const newApplication = new Application({
                     coverLetter: CoverLetter,
@@ -47,11 +66,12 @@ module.exports = {
                     applicant: userId,
                     cvUrl: cvUrl,
                     cvPublicId: cvPublicId,
+                    isApplied: true
                 });
 
                 await newApplication.save();
-                
-                res.status(200).json({ newApplication });
+
+                res.status(200).json({ newApplication, existingApplication });
             }
 
         } catch (error) {

@@ -94,9 +94,9 @@ module.exports = {
             if (existingJob) {
                 return res.status(400).json({ errMsg: 'Job with the same details already exists' });
             }
-            const uploadResponse = await uploadToCloudinary(logo, { upload_preset: 'jobPostLogos' });
-            if (uploadResponse) {
-                const logoUrl = uploadResponse.url;
+            const uploadedUrl = await uploadToCloudinary(logo, { upload_preset: 'jobPostLogos' });
+            if (uploadedUrl) {
+                const logoUrl = uploadedUrl;
 
                 const newJob = new Job({
                     jobTitle,

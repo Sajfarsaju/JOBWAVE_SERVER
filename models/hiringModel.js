@@ -28,5 +28,5 @@ const hiringSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-const hiringModel = mongoose.model("hired", hiringSchema);
+const hiringModel = mongoose.model("hirings", hiringSchema);
 module.exports = hiringModel;

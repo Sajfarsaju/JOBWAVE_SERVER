@@ -2,8 +2,6 @@ const User = require('../models/userModel');
 const bcrypt = require("bcrypt");
 const { generateToken } = require('../middlewares/auth');
 const { uploadToCloudinary } = require('../config/cloudinary');
-const Token = require('../models/tokenModel');
-const { sendEmail } = require('../utils/sendEmail');
 const crypto = require('crypto');
 let message, errMsg
 
@@ -239,10 +237,10 @@ module.exports = {
       if (!user) {
         return res.status(404).json({ errMsg: 'User not found' });
       }
-      const uploadResponse = await uploadToCloudinary(profileImage, { upload_preset: 'userProfile' });
+      const uploadedUrl = await uploadToCloudinary(profileImage, { upload_preset: 'userProfile' });
 
-      if (uploadResponse) {
-        user.profile = uploadResponse.url;
+      if (uploadedUrl) {
+        user.profile = uploadedUrl;
       }
       if (bio) {
         user.bio = bio;
