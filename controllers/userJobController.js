@@ -6,8 +6,97 @@ module.exports = {
 
     listJobs: async (req, res) => {
         try {
-            const { userId } = req.query
-            const Jobs = await Job.find({ isPostAccepted: true }).populate('companyId');
+            const { userId, search, limit, filters, worktype } = req.query;
+            const filterArray = filters ? filters.split(',') : [];
+            const workTypeFilter = worktype ? worktype.split(',') : [];
+
+            const jobsForFindCatg = await Job.find()
+            const JobsLength = jobsForFindCatg.length
+
+            const uniqueCategories = [...new Set(jobsForFindCatg?.map((job) => job?.jobCategory))]
+            const uniqueWorkTypes = [...new Set(jobsForFindCatg?.map((job) => job?.workType))]
+
+            let Jobs = []
+            if (filterArray.length > 0 && workTypeFilter.length > 0) {
+                Jobs = await Job.find({
+                    $and: [
+                        { isPostAccepted: true },
+                        {
+                            $or: [
+                                { jobTitle: { $regex: search, $options: 'i' } },
+                                { jobCategory: { $regex: search, $options: 'i' } },
+                                { workType: { $regex: search, $options: 'i' } },
+                                { workplace: { $regex: search, $options: 'i' } },
+                                { qualifications: { $regex: search, $options: 'i' } }
+                            ],
+                        },
+                        { jobCategory: { $in: filterArray } },
+                        { workType: { $in: workTypeFilter } },
+                    ],
+                }).populate('companyId').limit(limit);
+
+            } else if (workTypeFilter.length > 0) {
+                Jobs = await Job.find({
+                    $and: [
+                        { isPostAccepted: true },
+                        {
+                            $or: [
+                                { jobTitle: { $regex: search, $options: 'i' } },
+                                { jobCategory: { $regex: search, $options: 'i' } },
+                                { workType: { $regex: search, $options: 'i' } },
+                                { workplace: { $regex: search, $options: 'i' } },
+                                { qualifications: { $regex: search, $options: 'i' } }
+                            ],
+                        },
+                        { workType: { $in: workTypeFilter } },
+                    ],
+                })
+                    .populate('companyId')
+                    .sort({ createdAt: -1 })
+                    .limit(limit);
+
+            } else if (filterArray.length > 0) {
+                Jobs = await Job.find({
+                    $and: [
+                        { isPostAccepted: true },
+                        {
+                            $or: [
+                                { jobTitle: { $regex: search, $options: 'i' } },
+                                { jobCategory: { $regex: search, $options: 'i' } },
+                                { workType: { $regex: search, $options: 'i' } },
+                                { workplace: { $regex: search, $options: 'i' } },
+                                { qualifications: { $regex: search, $options: 'i' } }
+                            ],
+                        },
+                        { jobCategory: { $in: filterArray } },
+                    ],
+                })
+                    .populate('companyId')
+                    .sort({ createdAt: -1 })
+                    .limit(limit);
+
+            }
+            else {
+                Jobs = await Job.find({
+                    $and: [
+                        { isPostAccepted: true },
+                        {
+                            $or: [
+                                { jobTitle: { $regex: search, $options: 'i' } },
+                                { jobCategory: { $regex: search, $options: 'i' } },
+                                { workType: { $regex: search, $options: 'i' } },
+                                { workplace: { $regex: search, $options: 'i' } },
+                                { qualifications: { $regex: search, $options: 'i' } }
+                            ],
+                        }
+                    ],
+                })
+                    .populate('companyId')
+                    .sort({ createdAt: -1 })
+                    .limit(limit);
+
+            }
+
 
             const userApplications = await Application.find({ applicant: userId, jobId: { $in: Jobs.map(job => job._id) } });
 
@@ -28,7 +117,15 @@ module.exports = {
                 return jobInfo;
             });
 
-            res.status(200).json({ Jobs: jobsWithApplications });
+            //? Date base filtering
+             const currentDate = new Date();
+             const filteredJobsForDateChecking = jobsWithApplications.filter((job) => {
+                const jobDeadline = new Date(job.deadline);
+                return currentDate <= jobDeadline;
+            })
+            //?
+
+            res.status(200).json({ Jobs: filteredJobsForDateChecking, JobsLength, uniqueCategories, uniqueWorkTypes });
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: "An error occurred while listing job details at controller" });
@@ -65,8 +162,6 @@ module.exports = {
                     jobId: jobId,
                     applicant: userId,
                     cvUrl: cvUrl,
-                    cvPublicId: cvPublicId,
-                    isApplied: true
                 });
 
                 await newApplication.save();

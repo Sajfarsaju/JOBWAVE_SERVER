@@ -1,7 +1,7 @@
 const { generateToken } = require('../middlewares/auth');
 const User = require('../models/userModel');
-const Job = require('../models/jobPostModel')
-
+const Job = require('../models/jobPostModel');
+const bcrypt = require("bcrypt");
 require('dotenv').config()
 let msg, errMsg;
 
@@ -12,14 +12,25 @@ module.exports = {
     try {
 
       const { email, password } = req.body;
+      
+      const admin = await User.findOne({ email: email })
+      // if (email.trim() !== process.env.ADMIN_EMAIL.trim()) return res.status(401).json({ errMsg: "Your Email is incorrect!" });
 
-      if (email.trim() !== process.env.ADMIN_EMAIL.trim()) return res.status(401).json({ errMsg: "Your Email is incorrect!" });
+      // if (password.trim() !== process.env.ADMIN_PASS.trim()) return res.status(401).json({ errMsg: "Your Password is incorrect!" });
 
-      if (password.trim() !== process.env.ADMIN_PASS.trim()) return res.status(401).json({ errMsg: "Your Password is incorrect!" });
+      if (!admin) return res.status(401).json({ errMsg: "Not found details" });
+
+      const passMatch = await bcrypt.compare(password, admin.password)
+
+      if (!passMatch) return res.status(401).json({ errMsg: "Your Password is incorrect!" });
+
+      if(admin.isAdmin){
 
       const token = generateToken(email, 'admin');
 
       return res.status(200).json({ message: "Login Successful", name: "sajfarm", token, role: "admin" });
+      }
+
 
     } catch (error) {
       console.log(error)

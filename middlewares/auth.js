@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
+const userModel = require('../models/userModel');
 require('dotenv').config();
 let errMsg;
 
@@ -37,11 +38,27 @@ module.exports = {
             if (!token || !token.startsWith('Bearer ')) return res.status(403).json({ errMsg: "Access Denied" });
 
             if (token.startsWith('Bearer ')) token = token.slice(7, token.length).trimLeft();
-            
+
             const verified = jwt.verify(token, process.env.JWT_SECRET);
-            
+
             req.payload = { token, ...verified };
             
+            const user = await userModel.findById(verified.id);
+
+            if (!user) {
+                return res.status(404).json({ errMsg: "User not found" });
+            }
+            
+            if (req.payload.role === 'user' ) {
+                next();
+            } else if(!user.isActive){
+                
+                return res.status(401).json({ errMsg: "Your account has been blocked" });
+            }else{
+                return res.status(403).json({ errMsg: "Access Denied" });
+            }
+
+
             if (req.payload.role === 'user') {
                 next();
             } else {
@@ -65,11 +82,11 @@ module.exports = {
             if (!token || !token.startsWith('Bearer ')) return res.status(403).json({ errMsg: "Access Denied" });
 
             if (token.startsWith('Bearer ')) token = token.slice(7, token.length).trimLeft();
-            
+
             const verified = jwt.verify(token, process.env.JWT_SECRET);
             // req.payload = verified;
             req.payload = { token, companyId, ...verified };
-            
+
             if (req.payload.role === 'company') {
                 next();
             } else {

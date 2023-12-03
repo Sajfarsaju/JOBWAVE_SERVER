@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
         },
         profile: {
             type: String,
+            default: 'https://i.pinimg.com/1200x/60/07/0e/60070ed889df308cbe80253e8c36b3a3.jpg'
         },
         bio: {
             type: String,
@@ -45,6 +46,14 @@ const userSchema = new mongoose.Schema(
                 type: String,
             }
         },
+        subscriptionPlan: {
+            planAmt: {
+                type: String,
+            },
+            date: {
+                type: Date,
+            },
+        },
         //   education:{
         //      type:String,
         //       required:true,
@@ -57,6 +66,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true
         },
+        isAdmin: {
+            type: Boolean,
+            default: false
+        }
     }
 )
 

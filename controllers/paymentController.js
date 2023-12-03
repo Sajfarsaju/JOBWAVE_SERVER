@@ -53,7 +53,7 @@ module.exports = {
           console.log('id:', id, 'amt:', amountString)
           const newPlanData = {
             planAmt: amountString,
-            planType : planType,
+            planType: planType,
             date: new Date()
           }
 
@@ -77,9 +77,9 @@ module.exports = {
   setUpUserPayement: async (req, res) => {
 
     try {
-      const { token , id} = req.payload;
+      const { token, id } = req.payload;
       const { planAmt, planType } = req.body;
-      
+
       const user = await stripe.customers.create({
         metadata: {
           price: planAmt
@@ -107,7 +107,7 @@ module.exports = {
       console.log(error)
     }
   },
-  userPaymentStatus : async (req, res) => {
+  userPaymentStatus: async (req, res) => {
 
     const id = req.query.userId;
     const status = req.query.status;
@@ -120,10 +120,10 @@ module.exports = {
 
         if (status === 'success') {
           const amountString = amount.toString();
-          console.log('id:', id, 'amt:', amountString)
+
           const newPlanData = {
             planAmt: amountString,
-            planType : planType,
+            planType: planType,
             date: new Date()
           }
 
@@ -131,7 +131,6 @@ module.exports = {
             { _id: id },
             { $push: { subscriptionPlan: newPlanData } }
           );
-
           res.redirect(`${process.env.CLIENT_URL}/payment_successfully`)
         } else {
           res.redirect(`${process.env.CLIENT_URL}/payment_failed`)

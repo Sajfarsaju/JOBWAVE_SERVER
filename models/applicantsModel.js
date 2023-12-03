@@ -16,13 +16,12 @@ const jobApplicantsSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        cvPublicId: {
-            type: String,
-            required: true,
-        },
+        // cvPublicId: {
+        //     type: String,
+        //     required: true,
+        // },
         status: {
             type: String,
-            required: true,
             default: "Pending"
         },
         coverLetter: {

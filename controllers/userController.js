@@ -11,31 +11,43 @@ module.exports = {
   registration: async (req, res) => {
 
     try {
-      const { firstName, lastName, email, phone, password } = req.body
+      const { firstName, lastName, email, phone, password, profile, action } = req.body
 
-      const existingEmail = await User.findOne({ email })
-      const existingPhone = await User.findOne({ phone })
+      if (action === 'checkBackendResponse') {
 
-      if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
-      if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
-      if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
+        const existingEmail = await User.findOne({ email })
+        const existingPhone = await User.findOne({ phone })
 
-      if (firstName.trim().length === 0 || lastName.trim().length === 0 || email.trim().length === 0 || phone.trim().length === 0 || password.trim().length === 0) return res.status(401).json({ errMsg: "Please fill all the fields" })
+        if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
+        if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
+        // if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
 
-      const salt = await bcrypt.genSalt(6);
-      const hashedPass = await bcrypt.hash(password, salt);
+        if (firstName.trim().length === 0
+          || lastName.trim().length === 0
+          || email.trim().length === 0
+          || phone.trim().length === 0
+          || password.trim().length === 0) return res.status(401).json({ errMsg: "Please fill all the fields" })
 
-      const newUser = new User(
-        {
-          firstName,
-          lastName,
-          email,
-          phone,
-          password: hashedPass
-        }
-      )
-      await newUser.save();
-      res.status(200).json({ message: "Your registration has been successfully" });
+        return res.status(200).json()
+      }
+      if (action === 'saveData') {
+
+        const salt = await bcrypt.genSalt(6);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        const newUser = new User(
+          {
+            firstName,
+            lastName,
+            email,
+            phone,
+            profile: profile,
+            password: hashedPass
+          }
+        )
+        await newUser.save();
+        return res.status(200).json({ message: "Your registration has been successfully" });
+      }
 
     } catch (error) {
       console.log(error);
@@ -46,12 +58,6 @@ module.exports = {
     try {
 
       const { firstName, lastName, email, isEmailVerified, profile } = req.body;
-      console.log('firstName;', firstName);
-      console.log('lastName;', lastName);
-      console.log('email;', email);
-      console.log('isEmailVerified;', isEmailVerified);
-
-
 
       let existingUser = await User.findOne({ email: email });
 
@@ -94,11 +100,13 @@ module.exports = {
       if (!passMatch) return res.status(401).json({ errMsg: "Your Password is incorrect!" });
 
       if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked" });
-
-      const token = generateToken(user._id, 'user');
-
-      res.status(200).json({ message: "Welcome to JobWave", isActive: user.isActive, name: user.firstName, token, role: 'user', id: user._id });
-
+      
+      if (user.isAdmin) {
+        return res.status(401).json({ errMsg: "User not found!" });
+      }else{
+        const token = generateToken(user._id, 'user');
+        res.status(200).json({ message: "Welcome to JobWave", isActive: user.isActive, name: user.firstName, token, role: 'user', id: user._id });
+      }
     } catch (error) {
       console.log(error);
       res.status(500).json({ errMsg: "Something went wrong at Login" });
@@ -181,9 +189,22 @@ module.exports = {
   getProfile: async (req, res) => {
     try {
       const { id } = req.payload;
+      
       const user = await User.findById(id)
       
-      return res.json({ user, skills: user.skills }).status(200)
+      return res.json({ user, skills: user.skills }).status(200);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ errMsg: "Somthing went wrong at get profile" })
+    }
+  },
+  getPlan: async (req, res) => {
+    try {
+      const { userId } = req.query;
+      
+      const user = await User.findById(userId);
+      
+      return res.status(200).json({ user })
     } catch (error) {
       console.log(error);
       res.status(500).json({ errMsg: "Somthing went wrong at get profile" })
@@ -271,7 +292,7 @@ module.exports = {
 
         if (user.skills.some(existingSkill => existingSkill.toLowerCase() === capitalizedSkill.toLowerCase())) {
           console.log('Skill already exists:', capitalizedSkill);
-          return res.status(401).json({errMsg : "Skill already exists in your profile"})
+          return res.status(401).json({ errMsg: "Skill already exists in your profile" })
         } else {
 
           user.skills.addToSet(capitalizedSkill);

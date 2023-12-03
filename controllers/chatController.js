@@ -52,6 +52,7 @@ module.exports = {
     },
     fetchChats: async (req, res) => {
         try {
+            console.log(req.query)
             const { compId, senderRole } = req.query
 
             if (senderRole === "users" && !compId) {

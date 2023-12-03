@@ -20,7 +20,7 @@ const sendVerifyMail = async (companyName, companyEmail, InterviewTime, jobTitle
       subject: "Interview Invitation",
       html: `
         <p>Hello ${userFirstName} ${userLastName},</p>
-        <p>Congratulations! You have been shortlisted for an interview for the position of ${jobTitle} at ${companyName}.</p>
+        <p>We hope this message finds you well. You have been shortlisted for an interview for the position of ${jobTitle} at ${companyName}.</p>
         <p>Your interview is scheduled for:</p>
         <p>Interview Time: ${InterviewTime}</p>
         <p>Please make sure to be prepared and arrive on time. If you have any questions or need assistance, you can reach us at ${companyPhone}.</p>
