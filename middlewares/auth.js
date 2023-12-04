@@ -48,20 +48,13 @@ module.exports = {
             if (!user) {
                 return res.status(404).json({ errMsg: "User not found" });
             }
-            
-            if (req.payload.role === 'user' ) {
+           
+            if (req.payload.role === 'user' && user.isActive) {
                 next();
             } else if(!user.isActive){
-                
                 return res.status(401).json({ errMsg: "Your account has been blocked" });
             }else{
-                return res.status(403).json({ errMsg: "Access Denied" });
-            }
-
-
-            if (req.payload.role === 'user') {
-                next();
-            } else {
+                console.log('access denied')
                 return res.status(403).json({ errMsg: "Access Denied" });
             }
         } catch (error) {

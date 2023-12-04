@@ -203,7 +203,7 @@ module.exports = {
       const { userId } = req.query;
       
       const user = await User.findById(userId);
-      
+     
       return res.status(200).json({ user })
     } catch (error) {
       console.log(error);
