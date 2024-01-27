@@ -124,7 +124,6 @@ module.exports = {
                 return currentDate <= jobDeadline;
             })
             //?
-
             res.status(200).json({ Jobs: filteredJobsForDateChecking, JobsLength, uniqueCategories, uniqueWorkTypes });
         } catch (error) {
             console.log(error);
