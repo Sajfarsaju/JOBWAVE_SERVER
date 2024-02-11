@@ -118,8 +118,8 @@ module.exports = {
             });
 
             //? Date base filtering
-             const currentDate = new Date();
-             const filteredJobsForDateChecking = jobsWithApplications.filter((job) => {
+            const currentDate = new Date();
+            const filteredJobsForDateChecking = jobsWithApplications.filter((job) => {
                 const jobDeadline = new Date(job.deadline);
                 return currentDate <= jobDeadline;
             })
@@ -133,7 +133,13 @@ module.exports = {
     getSingleJob: async (req, res) => {
         try {
             const jobId = req.params.jobId;
-            const singleJob = await Job.findById(jobId);
+            const singleJob = await Job.findById(jobId)
+                .populate({
+                    path: 'companyId',
+                    select: 'companyName profile'
+                });
+
+
             res.status(200).json({ singleJob })
         } catch (error) {
             res.status(500).json({ errMsg: "An error occurred while getting single job details at controller" })
@@ -189,6 +195,19 @@ module.exports = {
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: "Something went wrong at listing applied jobs" });
+        }
+    },
+    fetchLandingJobs: async (req, res) => {
+        try {
+            const jobs = await Job
+                .find({ isPostAccepted: true }, { jobTitle: 1, companyId: 1, workType: 1, logo: 1, jobDescription: 1, isPostAccepted: 1, status: 1, createdAt: 1 })
+                .populate('companyId')
+                .sort({ createdAt: -1 })
+                .limit(3);
+
+            return res.status(200).json({ jobs: jobs })
+        } catch (error) {
+            console.log(error)
         }
     }
 }

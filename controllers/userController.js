@@ -54,7 +54,8 @@ module.exports = {
           await newOtp.save()
 
           //? calling send OTP mail function
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP);
+          let reasonForOtp = 'Signup'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
 
@@ -117,7 +118,8 @@ module.exports = {
             { $set: { otp: OTP } },
             { new: true }
           )
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP);
+          let reasonForOtp = 'Signup'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
             const token = generateToken(user._id, 'user');
@@ -141,7 +143,7 @@ module.exports = {
 
       let existingUser = await User.findOne({ email: email });
 
-      if (existingUser) return res.status(401).json({ errMsg: "User already exists with this account!" });
+      // if (existingUser) return res.status(401).json({ errMsg: "User already exists with this account!" });
 
       const newUser = new User(
         {
@@ -156,7 +158,7 @@ module.exports = {
 
       const token = generateToken(user._id, 'user');
 
-      res.status(200).json({ message: "Your registration has been successfully" , name: user.firstName, token, role: 'user', id: user._id  });
+      res.status(200).json({ message: "Your registration has been successfully", name: user.firstName, token, role: 'user', id: user._id });
 
     } catch (error) {
       console.log(error);
@@ -219,9 +221,9 @@ module.exports = {
 
         const user = await User.findOne({ email: email });
 
-        if (!user) return res.status(401).json({ errMsg: "You are not registered with this email. Please proceed to the registration page." });
+        if (!user) return res.status(404).json({ errMsg: "You are not registered with this email. Please proceed to the registration page." });
 
-        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked" });
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         //? OTP GENERATION
         const characters = '0123456789';
@@ -244,7 +246,8 @@ module.exports = {
           )
           await newOtp.save()
           //? calling send OTP mail function
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP);
+          let reasonForOtp = 'Sign in'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
             const token = generateToken(user._id, 'user');
@@ -259,6 +262,8 @@ module.exports = {
       if (action === 'verifyOtp') {
         console.log(userId, userOtp)
         const isOtp = await OTPModel.findOne({ $and: [{ userId: userId }, { otp: userOtp }] })
+
+        if (!isOtp.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         if (isOtp) {
           res.status(200).json({ success: true })
@@ -276,7 +281,7 @@ module.exports = {
         //? OTP GENERATION
         const user = await User.findOne({ email: email });
 
-        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked" });
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         const characters = '0123456789';
         const charactersLength = characters.length;
@@ -294,7 +299,8 @@ module.exports = {
             { $set: { otp: OTP } },
             { new: true }
           )
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP);
+          let reasonForOtp = 'Sign in'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
             const token = generateToken(user._id, 'user');
@@ -323,7 +329,7 @@ module.exports = {
 
         if (!user) return res.status(404).json({ errMsg: "User not found!" });
 
-        if (!user.isActive) return res.status(401).json({ errMsg: "Your account is blocked" });
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         //? OTP GENERATION
         const characters = '0123456789';
@@ -346,7 +352,8 @@ module.exports = {
           )
           await newOtp.save()
           //? calling send OTP mail function
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP);
+          let reasonForOtp = 'Forgot password'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
             const token = generateToken(user._id, 'user');
@@ -360,6 +367,8 @@ module.exports = {
       if (action === 'verifyOtp') {
         const user = await User.findOne({ email: email })
 
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
+
         const isOtp = await OTPModel.findOne({ $and: [{ userId: user._id }, { otp: userOtp }] })
 
 
@@ -370,13 +379,15 @@ module.exports = {
 
           return
         } else {
-          return res.status(401).json({ errMsg: "Invalid Otp, please try again" })
+          return res.status(400).json({ errMsg: "Invalid Otp, please try again" })
         }
       }
       if (action === 'updatePassword') {
 
         const user = await User.findOne({ email: email });
-        if (!user) return res.status(401).json({ errMsg: "User not found!" });
+
+        if (!user) return res.status(404).json({ errMsg: "User not found!" });
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         const salt = await bcrypt.genSalt(6);
         const hashedPass = await bcrypt.hash(password, salt);
@@ -421,51 +432,31 @@ module.exports = {
       res.status(500).json({ errMsg: "Somthing went wrong at get profile" })
     }
   },
-  addSkill: async (req, res) => {
-    try {
-      const { skill } = req.params
-      const { id } = req.payload;
-      const user = await User.findById(id)
-      if (req.body.action !== 'remove') {
-
-        user.skills.addToSet(skill);
-        await user.save();
-        console.log("added skill:", user.skills)
-        return res.status(200).json({ user })
-      }
-      //  remove skills
-      user.skills.pull(skill);
-      await user.save();
-      console.log("removed skill:", user.skills)
-      return res.status(200).json({ user })
-    } catch (error) {
-      console.log(error);
-    }
-  },
-  updateProfile: async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      let updatedUserData = req.body;
-      const updatedUser = await User.findByIdAndUpdate(userId, updatedUserData, { upsert: true });
-
-      if (!updatedUser) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      res.status(200).json({ updatedUser });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'An error occurred while updating the user profile' });
-    }
-  },
-  // 
   changeProfile: async (req, res) => {
     try {
       const { profileImage, bio } = req.body;
-      const { firstName, lastName, email, action } = req.body
+      const { firstName, lastName, email, phone, location, ctc, age, action } = req.body
+      console.log(req.body)
+      let Age = parseInt(age, 10);
 
       const userId = req.params.userId;
+      let updatedUser
+
+
 
       if (action === 'updatePersonal') {
+        const existingEmailUser = await User.findOne({ email: email });
+        // Check if email exists for another user
+
+        if (existingEmailUser && existingEmailUser._id.toString() !== userId.toString()) {
+          return res.status(400).json({ errMsg: 'Email already exists for another user', alreadyExistEmailOrPass: true });
+        }
+
+        // Check if phone exists for another user
+        const existingPhoneUser = await User.findOne({ phone: phone });
+        if (existingPhoneUser && existingPhoneUser._id.toString() !== userId.toString()) {
+          return res.status(400).json({ errMsg: 'Phone number already exists for another user', alreadyExistEmailOrPass: true });
+        }
 
         const updateObject = {};
         if (firstName) {
@@ -479,8 +470,20 @@ module.exports = {
         if (email) {
           updateObject.email = email;
         }
+        if (phone) {
+          updateObject.phone = phone;
+        }
+        if (location) {
+          updateObject.location = location;
+        }
 
-        const user = await User.findByIdAndUpdate(
+        updateObject.currentCTC = ctc;
+
+        if (Age) {
+          updateObject.age = Age;
+        }
+
+        updatedUser = await User.findByIdAndUpdate(
           userId,
           {
             $set: updateObject,
@@ -489,7 +492,7 @@ module.exports = {
           { new: true },
         );
 
-      } else if (action === 'updateProfile') {
+      } else if (action === 'updateProfile&Bio') {
 
         const user = await User.findById(userId);
 
@@ -504,18 +507,17 @@ module.exports = {
         if (bio) {
           user.bio = bio;
         }
-
         await user.save();
+        updatedUser = user
 
       }
-      return res.status(200).json({ message: true })
+      return res.status(200).json({ updatedUser, message: true })
 
     } catch (error) {
       console.log(error);
       return res.status(500).json({ errMsg: 'An error occurred' });
     }
   },
-  // 
   changeSkill: async (req, res) => {
     try {
       const { skill, action } = req.body;
@@ -552,58 +554,80 @@ module.exports = {
       return res.status(500).json({ errMsg: 'An error occurred' });
     }
   },
-  addExperience: async (req, res) => {
+  changeExperience: async (req, res) => {
     try {
-      const { role, yearOfExp, compName, action } = req.body;
-      const { userId } = req.payload
 
-      if (action === 'add-experience') {
+      const userId = req.payload.id
 
-        const user = await User.findById(userId);
-        if (!user) {
-          return res.status(404).json({ error: 'User not found' });
-        }
+      const { action, expIdToRemove, expIdToEdit, experienceTitle, expCompany, expCompLocation, expStartDate, expEndDate } = req.body;
 
+      let user = await User.findById(userId);
+      let updatedUser
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      //? Start Adding  
+      if (action === 'add_exp') {
         const newExperience = {
-          role,
-          yearOfExp,
-          compName,
+          experienceTitle,
+          expCompany,
+          expCompLocation,
+          expStartDate,
+          expEndDate
         };
 
-        user.experienceDetails.push(newExperience);
+        updatedUser = await User.findOneAndUpdate(
+          { _id: userId },
+          {
+            $push: {
+              experienceDetails: newExperience
+            }
+          },
+          { new: true }
+        );
 
-        await user.save();
-
-        res.status(200).json({ user });
       }
+      //? End Adding  
+
+      //? Start Edit  
+      if (action === 'edit_exp') {
+        const updatedExperience = {
+          experienceTitle,
+          expCompany,
+          expCompLocation,
+          expStartDate,
+          expEndDate
+        };
+
+        updatedUser = await User.findOneAndUpdate(
+          { _id: userId, 'experienceDetails._id': expIdToEdit },
+          {
+            $set: {
+              'experienceDetails.$': updatedExperience
+            }
+          },
+          { new: true }
+        );
+      }
+      //? End Edit
+
+      //? Start Remove
+      if (action === 'remove_exp') {
+
+        updatedUser = await User.findOneAndUpdate(
+          { _id: userId, 'experienceDetails._id': expIdToRemove },
+          { $pull: { experienceDetails: { _id: expIdToRemove } } },
+          { new: true }
+        );
+      }
+      //? End Remove
+
+      res.status(200).json({ updatedUser });
     } catch (error) {
       console.error(error);
       res.status(500).json({ errMsg: 'An error occurred while adding experience' });
-    }
-  },
-  addBio: async (req, res) => {
-    try {
-      const { id } = req.payload;
-      const { action, bio } = req.body;
-
-      const user = await User.findById(id);
-
-      if (!user) {
-        return res.status(404).json({ errMsg: 'User not found' });
-      }
-      if (bio.trim().length === 0) return res.status(400).json({ errMsg: "Fill your bio!!" })
-      if (action === 'updateBio') {
-        user.bio = bio;
-
-        await user.save();
-        console.log(user.bio)
-        return res.status(200).json({ user: user });
-      } else {
-        return res.status(400).json({ errMsg: 'Invalid action' });
-      }
-    } catch (error) {
-      console.error("Error handling request:", error);
-      return res.status(500).json({ errMsg: 'Internal server error' });
     }
   },
 }

@@ -6,12 +6,6 @@ const postJobSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  // jobCategory:{
-  //     type: mongoose.Schema.Types.ObjectId,
-  //     ref: "category",
-  //     required: true
-
-  // },
   jobCategory: {
     type: String,
     required: true

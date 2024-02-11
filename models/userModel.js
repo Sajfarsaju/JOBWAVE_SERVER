@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema(
@@ -35,16 +36,31 @@ const userSchema = new mongoose.Schema(
         bio: {
             type: String,
         },
-        experienceDetails: {
-            role: {
-                type: String,
-            },
-            yearOfExp: {
+        experienceDetails: [{
+            experienceTitle: {
                 type: String
             },
-            compName: {
-                type: String,
+            expCompany: {
+                type: String
+            },
+            expCompLocation: {
+                type: String
+            },
+            expStartDate: {
+                type: String
+            },
+            expEndDate: {
+                type: String
             }
+        }],
+        location: {
+            type: String
+        },
+        currentCTC:{
+            type: String
+        },
+        age: {
+            type: Number
         },
         subscriptionPlan: {
             planAmt: {
@@ -54,14 +70,9 @@ const userSchema = new mongoose.Schema(
                 type: Date,
             },
         },
-        //   education:{
-        //      type:String,
-        //       required:true,
-        //     },
-        // }
-        skills: [{
-            type: String
-        }],
+        skills: {
+            type: [String],
+        },
         isActive: {
             type: Boolean,
             default: true
