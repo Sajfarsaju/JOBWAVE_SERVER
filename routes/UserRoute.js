@@ -1,6 +1,6 @@
 const express = require('express');
 const { registration , googleSignup , login , googleLogin , getProfile,changeProfile,changeSkill, loginWithOTP, forgetPassUser, getPlan, changeExperience } = require('../controllers/userController');
-const { listJobs, getSingleJob, applyJob , appliedJobs, fetchLandingJobs} = require('../controllers/userJobController');
+const { listJobs, getSingleJob, applyJob , appliedJobs, fetchLandingJobs, fetchAboutCompany} = require('../controllers/userJobController');
 const { verifyTokenUser } = require('../middlewares/auth');
 const upload = require('../middlewares/multer');
 const { setUpUserPayement, userPaymentStatus } = require('../controllers/paymentController');
@@ -29,5 +29,6 @@ userRouter.get('/payment_failed', userPaymentStatus);
 userRouter.post('/chats', verifyTokenUser , createChat);
 userRouter.get('/chats', verifyTokenUser , fetchChats);
 userRouter.get('/openChat', verifyTokenUser , fetchAllMessages);
+userRouter.get('/aboutCompany', verifyTokenUser , fetchAboutCompany);
 
 module.exports = userRouter;

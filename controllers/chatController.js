@@ -63,11 +63,11 @@ module.exports = {
             let selectedChat
             // ?
             let senderId;
-            let senderIdField
+            let senderDBIdField
 
             if (senderRole === 'users') {
                 senderId = new mongoose.Types.ObjectId(req.payload.id);
-                senderIdField = 'userId'
+                senderDBIdField = 'userId'
                 
                 selectedChat = await Chat.findOne({
                     companyId: companyId,
@@ -79,10 +79,10 @@ module.exports = {
 
             }else{
                 senderId = new mongoose.Types.ObjectId(req.payload.companyId);
-                senderIdField = 'companyId'
+                senderDBIdField = 'companyId'
             }
             const chats = await Chat
-                .find({[senderIdField]: senderId })
+                .find({[senderDBIdField]: senderId })
                 .populate({ path: 'userId', select: 'firstName lastName profile' })
                 .populate({ path: 'companyId', select: 'companyName profile' })
                 .populate({ path: 'latestMessage', populate: { path: 'senderId', select: 'firstName lastName profile companyName' } })

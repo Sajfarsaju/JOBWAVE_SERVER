@@ -1,5 +1,7 @@
 const Job = require('../models/jobPostModel');
 const Application = require('../models/applicantsModel');
+const Company = require('../models/companyModel');
+const Chat = require('../models/chatModel');
 const { uploadToCloudinary } = require('../config/cloudinary');
 
 module.exports = {
@@ -183,12 +185,14 @@ module.exports = {
         try {
             const { id } = req.payload;
             const appliedJobs = await Application.find({ applicant: id }).populate('jobId');
+
             for (const application of appliedJobs) {
                 const jobId = application.jobId;
 
                 const job = await Job.findById(jobId).populate('companyId');
 
                 application.jobId = job;
+
             }
             res.status(200).json({ appliedJobs });
 
@@ -208,6 +212,51 @@ module.exports = {
             return res.status(200).json({ jobs: jobs })
         } catch (error) {
             console.log(error)
+            res.status(500).json({ errMsg: "Something went wrong at fetching landing page jobs" });
+        }
+    },
+    fetchAboutCompany: async (req, res) => {
+        try {
+            const { companyId } = req.query
+            const { id } = req.payload;
+
+            const company = await Company.findById(companyId)
+            const Jobs = await Job.find({ companyId: companyId }).sort({ createdAt: -1 }).populate('companyId')
+
+            //? Setting true for applied jobs
+            const userApplications = await Application.find({ applicant: id, jobId: { $in: Jobs.map(job => job._id) } });
+
+            const jobApplicationsMap = {};
+            userApplications.forEach(application => {
+                jobApplicationsMap[application.jobId.toString()] = application;
+            });
+
+            const jobsWithApplications = Jobs.map(job => {
+                const jobInfo = job.toObject();
+                const application = jobApplicationsMap[job._id.toString()];
+
+                if (application) {
+                    jobInfo.appliedStatus = true;
+                } else {
+                    jobInfo.appliedStatus = false;
+                }
+                return jobInfo;
+            });
+            //?
+
+            const selectedChat = await Chat.findOne({
+                companyId: companyId,
+                userId: id
+            })
+            let isChatExist = false
+            if (selectedChat) {
+                isChatExist = true
+            }
+
+            return res.status(200).json({ company, Jobs: jobsWithApplications, isChatExist })
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ errMsg: "Something went wrong at fetching about company on user side" });
         }
     }
 }
