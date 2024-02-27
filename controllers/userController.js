@@ -95,7 +95,11 @@ module.exports = {
         )
         await newUser.save();
         return res.status(200).json({ message: "Your registration has been successfully" });
-      }
+      } else {
+        
+        return res.status(401).json({ errMsg: "Invalid Otp, please try again" });
+    }
+
 
       if (action === 'resendOtp') {
 
@@ -261,9 +265,12 @@ module.exports = {
       }
       if (action === 'verifyOtp') {
         console.log(userId, userOtp)
+
+        const user = await User.findOne({_id:userId})
         const isOtp = await OTPModel.findOne({ $and: [{ userId: userId }, { otp: userOtp }] })
 
-        if (!isOtp.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
+     
+        if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         if (isOtp) {
           res.status(200).json({ success: true })

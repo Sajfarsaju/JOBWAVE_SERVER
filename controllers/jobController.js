@@ -1,6 +1,5 @@
 const Job = require('../models/jobPostModel');
 const Category = require('../models/categoryModel');
-const { uploadToCloudinary } = require('../config/cloudinary');
 
 
 module.exports = {
@@ -14,7 +13,6 @@ module.exports = {
                 workplace,
                 salaryRange,
                 deadline,
-                logo,
                 qualifications,
                 jobDescription,
                 companyDescription,
@@ -23,9 +21,8 @@ module.exports = {
                 vacancy,
                 companyId
             } = req.body;
-            // const jobcategory = jobCategory.categoryName;
 
-            const jobCategoryId = jobCategory._id
+            const jobCategoryId = jobCategory.value
 
 
             if (!jobTitle || jobTitle.trim().length === 0) {
@@ -53,10 +50,6 @@ module.exports = {
                 return res.status(400).json({ errMsg: 'Deadline is required and must be a valid date' });
             }
 
-            if (!logo) {
-                return res.status(400).json({ errMsg: 'Your Logo is required' });
-            }
-
 
             if (!qualifications || qualifications.trim().length === 0) {
                 return res.status(400).json({ errMsg: 'Qualifications is required and must be an array of strings' });
@@ -79,7 +72,7 @@ module.exports = {
                 jobTitle,
                 workType,
                 workplace,
-                jobCategory,
+                jobCategory: jobCategory.label,
                 salaryRange,
                 deadline,
                 qualifications,
@@ -93,20 +86,15 @@ module.exports = {
             const selectedCategory = await Category.findOne({ _id: jobCategoryId });
             if (existingJob) {
                 return res.status(400).json({ errMsg: 'Job with the same details already exists' });
-            }
-            const uploadedUrl = await uploadToCloudinary(logo, { upload_preset: 'jobPostLogos' });
-            if (uploadedUrl) {
-                const logoUrl = uploadedUrl;
+            } else {
 
                 const newJob = new Job({
                     jobTitle,
                     jobCategory: selectedCategory.categoryName,
-                    // jobCategory:jobCategory.categoryName,
                     workType,
                     workplace,
                     salaryRange,
                     deadline,
-                    logo: logoUrl,
                     qualifications,
                     jobDescription,
                     companyDescription,
@@ -119,7 +107,9 @@ module.exports = {
                 await newJob.save();
                 res.status(200).json({ newJob });
             }
-           
+
+
+
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: 'An error occurred while saving job details at controller' });
@@ -135,5 +125,25 @@ module.exports = {
             res.status(500).json({ errMsg: "An error occurred while listing job details at controller" });
         }
     },
+    enableDisableJob: async (req, res) => {
+        try {
+            const { companyId } = req.payload
+            const { jobPostId, action } = req.body
+            console.log(req.body)
+
+            if (action === 'enableJob') {
+                await Job.findOneAndUpdate({ _id: jobPostId }, { $set: { isJobDisabled: false } })
+            }
+            if (action === 'disableJob') {
+                await Job.findOneAndUpdate({ _id: jobPostId }, { $set: { isJobDisabled: true } }, { new: true })
+            }
+            const updatedJobPost = await Job.find({ companyId: companyId })
+            
+            return res.status(200).json({ updatedJobPost })
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ errMsg: "An error occurred while enable or disable job at controller" });
+        }
+    }
 
 }

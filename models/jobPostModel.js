@@ -33,9 +33,9 @@ const postJobSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  logo: {
-    type: String,
-    required: true
+  isJobDisabled: {
+    type: Boolean,
+    default: false
   },
   qualifications: {
     type: String,

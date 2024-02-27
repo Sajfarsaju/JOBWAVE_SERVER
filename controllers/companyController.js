@@ -99,7 +99,7 @@ module.exports = {
     },
     updateProfile: async (req, res) => {
         try {
-            const { profile, bio, companyId , isImageSelected} = req.body;
+            const { profile, bio, companyId, isImageSelected } = req.body;
 
             let updatedCompany;
 
@@ -121,7 +121,7 @@ module.exports = {
                 company.bio = bio
                 updatedCompany = await company.save();
             }
-            
+
             return res.status(200).json({ updatedCompany })
 
         } catch (error) {
@@ -217,20 +217,13 @@ module.exports = {
 
             const myPosts = await Job.find({ companyId });
 
-
-            // const candidates = await hiringModel.find({ jobId: { $in: myPosts.map(post => post._id) } })
-            //   .populate({
-            //     path: 'applicant',
-            //     select: 'firstName lastName email profile',
-            //   })
-            //   .populate({
-            //     path: 'jobId',
-            //     select: 'jobTitle',
-            //   });
-            //   console.log("candidates;",candidates)
             const shortlistedDetail = await hiringModel.find({ companyId: companyId, status: 'shortlisted' })
                 .populate('candidate')
                 .populate('jobId')
+                .populate({
+                    path: 'applicationId',
+                    select: 'cvUrl'
+                })
 
             return res.status(200).json({ shortlistedDetail })
         } catch (error) {
@@ -275,6 +268,23 @@ module.exports = {
         } catch (error) {
             console.log(error);
             res.status(500).json({ errMsg: "Something went wrong at hiring candidate" })
+        }
+    },
+    viewUserProfile: async (req, res) => {
+
+        try {
+            const { userId } = req.query
+
+            const user = await User.findOne({ _id: userId })
+
+            if(user){
+
+                return res.status(200).json({ user })
+            }
+
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ errMsg: "Something went wrong at fetching candidate profile" })
         }
     }
 }

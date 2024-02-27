@@ -23,6 +23,7 @@ module.exports = {
                 Jobs = await Job.find({
                     $and: [
                         { isPostAccepted: true },
+                        { isJobDisabled: false },
                         {
                             $or: [
                                 { jobTitle: { $regex: search, $options: 'i' } },
@@ -41,6 +42,7 @@ module.exports = {
                 Jobs = await Job.find({
                     $and: [
                         { isPostAccepted: true },
+                        { isJobDisabled: false },
                         {
                             $or: [
                                 { jobTitle: { $regex: search, $options: 'i' } },
@@ -61,6 +63,7 @@ module.exports = {
                 Jobs = await Job.find({
                     $and: [
                         { isPostAccepted: true },
+                        { isJobDisabled: false },
                         {
                             $or: [
                                 { jobTitle: { $regex: search, $options: 'i' } },
@@ -82,6 +85,7 @@ module.exports = {
                 Jobs = await Job.find({
                     $and: [
                         { isPostAccepted: true },
+                        { isJobDisabled: false },
                         {
                             $or: [
                                 { jobTitle: { $regex: search, $options: 'i' } },
@@ -204,7 +208,7 @@ module.exports = {
     fetchLandingJobs: async (req, res) => {
         try {
             const jobs = await Job
-                .find({ isPostAccepted: true }, { jobTitle: 1, companyId: 1, workType: 1, logo: 1, jobDescription: 1, isPostAccepted: 1, status: 1, createdAt: 1 })
+                .find({ isPostAccepted: true, isJobDisabled: false }, { jobTitle: 1, companyId: 1, workType: 1, logo: 1, jobDescription: 1, isPostAccepted: 1, status: 1, createdAt: 1 })
                 .populate('companyId')
                 .sort({ createdAt: -1 })
                 .limit(3);
