@@ -44,6 +44,7 @@ module.exports = {
     const amount = req.query.planAmt;
     const planType = req.query.planType;
     const token = req.query.token;
+    console.log(id)
 
     try {
       if (token) {
