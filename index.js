@@ -10,7 +10,7 @@ const app = express();
 const userRoute = require('./routes/UserRoute');
 const companyRouter = require('./routes/companyRouter');
 const adminRouter = require('./routes/adminRoute');
-const { saveChat } = require('./controllers/chatController');
+const { saveChat,fetchChats } = require('./controllers/chatController');
 const connectDB = require('./config/dbConfig');
 
 
@@ -57,6 +57,7 @@ io.on("connection", (socket) => {
     socket.to(newMessage.chatId).emit("message_response",newMessage);
     
     saveChat(newMessage)
+    // fetchChats()
   })
   
 });

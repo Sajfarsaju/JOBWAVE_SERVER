@@ -5,6 +5,7 @@ const { uploadToCloudinary } = require('../config/cloudinary');
 const OTPModel = require('../models/otpModel')
 const crypto = require('crypto');
 const sendMailOTP = require('../config/mailOTP');
+const generateOtp = require('../config/generateOtp')
 let message, errMsg
 
 
@@ -14,33 +15,28 @@ module.exports = {
 
     try {
       const { firstName, lastName, email, phone, password, profile, action, userOtp } = req.body
-      let user
-
+      console.log(action)
       if (action === 'checkBackendResponse&saveOTP') {
 
         const existingEmail = await User.findOne({ email })
         const existingPhone = await User.findOne({ phone })
-        user = existingEmail
 
-        if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
-        if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
-        if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
+
+        // if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
+        // if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
+        // if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
 
         if (firstName.trim().length === 0
           || lastName.trim().length === 0
           || email.trim().length === 0
           || phone.trim().length === 0
-          || password.trim().length === 0) return res.status(401).json({ errMsg: "Please fill all the fields" })
+          || password.trim().length === 0) {
+
+          return res.status(401).json({ errMsg: "Please fill all the fields" })
+        }
 
         //? OTP GENERATION
-        const characters = '0123456789';
-        const charactersLength = characters.length;
-        let OTP = '';
-
-        for (let i = 1; i <= 6; i++) {
-          const randomIndex = Math.floor(Math.random() * charactersLength);
-          OTP += characters.charAt(randomIndex);
-        }
+        const OTP = generateOtp()
         //? END OTP GENERATION
 
         if (OTP) {
@@ -55,84 +51,70 @@ module.exports = {
 
           //? calling send OTP mail function
           let reasonForOtp = 'Signup'
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
+          const mailOtpResult = await sendMailOTP(email, firstName, lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
 
-            return res.status(200).json({ message: "Otp sented your mail" });
+            return res.status(200).json({ message: "Otp sent to your mail" });
 
           } else {
             return res.status(401).json({ errMsg: "Something wrong please try again" })
           }
         }
-
-        return res.status(200).json()
-      }
-      if (action === 'verifyOTP&saveData') {
+      } else if (action === 'verifyOTP&saveData') {
 
         const isOtp = await OTPModel.findOne({ $and: [{ userEmail: email }, { otp: userOtp }] })
 
         if (isOtp) {
 
           await OTPModel.deleteOne({ $or: [{ userEmail: email }, { otp: userOtp }] })
+
+
+          const salt = await bcrypt.genSalt(6);
+          const hashedPass = await bcrypt.hash(password, salt);
+
+          const newUser = new User(
+            {
+              firstName,
+              lastName,
+              email,
+              phone,
+              profile: profile,
+              password: hashedPass
+            }
+          )
+          await newUser.save();
+
+          return res.status(200).json({ message: "Your registration has been successfully" });
+
         } else {
           return res.status(401).json({ errMsg: "Invalid Otp, please try again" })
         }
-
-
-        const salt = await bcrypt.genSalt(6);
-        const hashedPass = await bcrypt.hash(password, salt);
-
-        const newUser = new User(
-          {
-            firstName,
-            lastName,
-            email,
-            phone,
-            profile: profile,
-            password: hashedPass
-          }
-        )
-        await newUser.save();
-        return res.status(200).json({ message: "Your registration has been successfully" });
-      } else {
-        
-        return res.status(401).json({ errMsg: "Invalid Otp, please try again" });
-    }
-
-
-      if (action === 'resendOtp') {
+      } else if (action === 'resendOtp') {
 
         //? OTP GENERATION
-        const user = await User.findOne({ email: email });
-
-        const characters = '0123456789';
-        const charactersLength = characters.length;
-        let OTP = '';
-
-        for (let i = 1; i <= 6; i++) {
-          const randomIndex = Math.floor(Math.random() * charactersLength);
-          OTP += characters.charAt(randomIndex);
-        }
+        const OTP = generateOtp()
         //? END OTP GENERATION
         if (OTP) {
 
-          const updatedOTP = await OTPModel.findOneAndUpdate(
+          await OTPModel.findOneAndUpdate(
             { userEmail: email },
-            { $set: { otp: OTP } },
-            { new: true }
-          )
+            { $set: { otp: OTP, createdAt: Date.now() } },
+            { new: true, upsert: true }
+          );
+
           let reasonForOtp = 'Signup'
-          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
+          const mailOtpResult = await sendMailOTP(email, firstName, lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
-            const token = generateToken(user._id, 'user');
-            return res.status(200).json({ message: "Otp sented your mail", isActive: user.isActive, token, name: user.firstName, role: 'user', id: user._id });
+            return res.status(200).json({ message: "Otp sented your mail" });
 
           } else {
             return res.status(401).json({ errMsg: "Something wrong please try again" })
           }
         }
+      } else {
+        return res.status(401).json({ errMsg: "Invalid action" });
       }
 
     } catch (error) {
@@ -230,14 +212,7 @@ module.exports = {
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         //? OTP GENERATION
-        const characters = '0123456789';
-        const charactersLength = characters.length;
-        let OTP = '';
-
-        for (let i = 1; i <= 6; i++) {
-          const randomIndex = Math.floor(Math.random() * charactersLength);
-          OTP += characters.charAt(randomIndex);
-        }
+        const OTP = generateOtp()
         //? END OTP GENERATION
 
         if (OTP) {
@@ -266,10 +241,10 @@ module.exports = {
       if (action === 'verifyOtp') {
         console.log(userId, userOtp)
 
-        const user = await User.findOne({_id:userId})
+        const user = await User.findOne({ _id: userId })
         const isOtp = await OTPModel.findOne({ $and: [{ userId: userId }, { otp: userOtp }] })
 
-     
+
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         if (isOtp) {
@@ -285,27 +260,21 @@ module.exports = {
 
       if (action === 'resendOtp') {
 
-        //? OTP GENERATION
         const user = await User.findOne({ email: email });
 
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
-        const characters = '0123456789';
-        const charactersLength = characters.length;
-        let OTP = '';
-
-        for (let i = 1; i <= 6; i++) {
-          const randomIndex = Math.floor(Math.random() * charactersLength);
-          OTP += characters.charAt(randomIndex);
-        }
+        //? OTP GENERATION
+        const OTP = generateOtp()
         //? END OTP GENERATION
         if (OTP) {
 
-          const updatedOTP = await OTPModel.findOneAndUpdate(
+          await OTPModel.findOneAndUpdate(
             { _id: otpId },
-            { $set: { otp: OTP } },
-            { new: true }
+            { $set: { otp: OTP, createdAt: Date.now() } },
+            { new: true, upsert: true }
           )
+
           let reasonForOtp = 'Sign in'
           const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
@@ -330,23 +299,15 @@ module.exports = {
     try {
       const { password, email, action, userOtp, otpId } = req.body;
 
+      const user = await User.findOne({ email: email });
+
       if (action === 'getOTP&SaveOTP') {
 
-        const user = await User.findOne({ email: email });
-
         if (!user) return res.status(404).json({ errMsg: "User not found!" });
-
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 
         //? OTP GENERATION
-        const characters = '0123456789';
-        const charactersLength = characters.length;
-        let OTP = '';
-
-        for (let i = 1; i <= 6; i++) {
-          const randomIndex = Math.floor(Math.random() * charactersLength);
-          OTP += characters.charAt(randomIndex);
-        }
+        const OTP = generateOtp()
         //? END OTP GENERATION
 
         if (OTP) {
@@ -354,6 +315,7 @@ module.exports = {
           const newOtp = new OTPModel(
             {
               userId: user._id,
+              userEmail: user.email,
               otp: OTP
             }
           )
@@ -363,7 +325,30 @@ module.exports = {
           const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
 
           if (mailOtpResult.success) {
-            const token = generateToken(user._id, 'user');
+            return res.status(200).json({ message: "Otp sented your mail", otpId: newOtp._id });
+
+          } else {
+            return res.status(401).json({ errMsg: "Something wrong please try again" })
+          }
+        }
+      }
+      if (action === 'resendOtp') {
+        //? OTP GENERATION
+        const OTP = generateOtp()
+        //? END OTP GENERATION
+
+        if (OTP) {
+          const newOtp = await OTPModel.findOneAndUpdate(
+            { _id: otpId },
+            { $set: { otp: OTP, createdAt: Date.now() , userId: user._id , userEmail: user.email} },
+            { new: true, upsert: true }
+          )
+          console.log(newOtp)
+          //? calling send OTP mail function
+          let reasonForOtp = 'Forgot password'
+          const mailOtpResult = await sendMailOTP(email, user.firstName, user.lastName, OTP, reasonForOtp);
+
+          if (mailOtpResult.success) {
             return res.status(200).json({ message: "Otp sented your mail", otpId: newOtp._id });
 
           } else {
@@ -372,7 +357,6 @@ module.exports = {
         }
       }
       if (action === 'verifyOtp') {
-        const user = await User.findOne({ email: email })
 
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
 

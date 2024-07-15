@@ -52,7 +52,7 @@ module.exports = {
     },
     fetchChats: async (req, res) => {
         try {
-            console.log(req.query)
+            
             const { compId, senderRole } = req.query
 
             if (senderRole === "users" && !compId) {
@@ -87,7 +87,7 @@ module.exports = {
                 .populate({ path: 'companyId', select: 'companyName profile' })
                 .populate({ path: 'latestMessage', populate: { path: 'senderId', select: 'firstName lastName profile companyName' } })
                 .sort({ updatedAt: -1 });
-                
+                // console.log(chats)
             res.status(200).json({ chatList : chats , selectedChat})
 
         } catch (error) {
