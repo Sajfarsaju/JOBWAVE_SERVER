@@ -22,9 +22,9 @@ module.exports = {
         const existingPhone = await User.findOne({ phone })
 
 
-        // if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
-        // if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
-        // if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
+        if (existingEmail && existingPhone) return res.status(401).json({ errMsg: "Email and phone already exist!" });
+        if (existingEmail) return res.status(401).json({ errMsg: "User already exists with this Email!" });
+        if (existingPhone) return res.status(401).json({ errMsg: "User already exists with this Phone!" });
 
         if (firstName.trim().length === 0
           || lastName.trim().length === 0
@@ -99,7 +99,7 @@ module.exports = {
 
           await OTPModel.findOneAndUpdate(
             { userEmail: email },
-            { $set: { otp: OTP, createdAt: Date.now() } },
+            { $set: { otp: OTP, createdAt: Date.now() , userEmail: email} },
             { new: true, upsert: true }
           );
 
@@ -220,6 +220,7 @@ module.exports = {
           const newOtp = new OTPModel(
             {
               userId: user._id,
+              userEmail: user.email,
               otp: OTP
             }
           )
@@ -239,10 +240,10 @@ module.exports = {
 
       }
       if (action === 'verifyOtp') {
-        console.log(userId, userOtp)
 
         const user = await User.findOne({ _id: userId })
         const isOtp = await OTPModel.findOne({ $and: [{ userId: userId }, { otp: userOtp }] })
+        console.log(isOtp)
 
 
         if (!user.isActive) return res.status(401).json({ errMsg: "Your account has been blocked", isBlocked: true });
@@ -271,7 +272,7 @@ module.exports = {
 
           await OTPModel.findOneAndUpdate(
             { _id: otpId },
-            { $set: { otp: OTP, createdAt: Date.now() } },
+            { $set: { otp: OTP, createdAt: Date.now() , userId: user._id , userEmail: user.email} },
             { new: true, upsert: true }
           )
 
